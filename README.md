@@ -1,4 +1,5 @@
-# D-left hashing and dynamic bit reassignment bloom filter
+# Bloom Filters via d-Left Hashing and Dynamic Bit Reassignment  
+
 ## This code implements the data structure presented in [this article](https://pdfs.semanticscholar.org/c969/d09434e1b3326053e76fc466b62402942d06.pdf)
 
 To use this code first include the file BloomFilter.h  
@@ -44,7 +45,7 @@ bloom_filter.query("hey there honey"); //returns true
 ```
 
 
-#### Example
+## Example
 ```cpp
 #include <iostream>
 #include <cstdlib>
