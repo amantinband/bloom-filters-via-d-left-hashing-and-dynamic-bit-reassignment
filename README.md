@@ -27,7 +27,7 @@ Inserting elements to the bloom filter can be done using the `insert` function
 `bloom_filter.insert("hey there honey");`  
 
 The bloom filter expects to receive char* but other types can be added with a cast  
-`unsigned int random = rand()%MAX;`
+`unsigned int random = rand()%MAX;`  
 `bloom_filter.insert(reinterpret_cast<const char *>(&random));`
 
 Queries can be done using the `query` function
