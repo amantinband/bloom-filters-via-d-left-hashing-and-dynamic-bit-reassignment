@@ -1,5 +1,5 @@
 # D-left hashing and dynamic bit reassignment bloom filter
-## This code implements the data structure presented in [this article](https://www.google.com)
+## This code implements the data structure presented in [this article](https://pdfs.semanticscholar.org/c969/d09434e1b3326053e76fc466b62402942d06.pdf)
 
 To use this code first include the file BloomFilter.h  
 `#include "BloomFilter.h"`
