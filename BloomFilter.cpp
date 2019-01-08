@@ -41,7 +41,7 @@ void BloomFilter::insert(const char *element) {
     /* dynamic bit reassignment */
     new_bucket |= number_of_elements_in_destination_bucket+1;
     new_bucket <<= number_of_lost_bits(new_fingerprint_length, number_of_elements_in_destination_bucket + 1);
-    for (int i=0; i<number_of_elements_in_destination_bucket; i++) {
+    for (unsigned int i=0; i<number_of_elements_in_destination_bucket; i++) {
         new_bucket <<= new_fingerprint_length;
         new_bucket |= (old_bucket&get_bitmask(old_fingerprint_length))%(static_cast<size_t>(1)<<new_fingerprint_length);
         old_bucket >>= old_fingerprint_length;
@@ -51,9 +51,9 @@ void BloomFilter::insert(const char *element) {
 
     /* replace old bucket */
     for (unsigned int i=0; i<get_bucket_size_in_bytes(); i++) {
-        table[destination_table_index*table_size_in_bytes+bucket_index*get_bucket_size_in_bytes()+i] = static_cast<unsigned char>(0xFF&(new_bucket >> ((sizeof(size_t)-1-i)*BITS_IN_BYTE)));
+        table[destination_table_index*table_size_in_bytes+bucket_index*get_bucket_size_in_bytes()+i] = static_cast<unsigned char>(0xFF&(new_bucket >> ((get_bucket_size_in_bytes()-1-i)*BITS_IN_BYTE)));
     }
-    cout << hex << new_bucket << endl;
+    //cout << hex << new_bucket << endl;
 }
 
 unsigned int BloomFilter::get_table_index_with_emptiest_bucket(const char *element) {
@@ -105,7 +105,7 @@ bool BloomFilter::bucket_contains_element(unsigned int table_index, size_t bucke
     /* extract fingerprint from bucket */
     auto element_size = static_cast<unsigned int>(floor(bits_per_bucket / number_of_elements_in_bucket));
 
-    for (int i=0; i<number_of_elements_in_bucket; i++) {
+    for (unsigned int i=0; i<number_of_elements_in_bucket; i++) {
         if ((bucket&get_bitmask(element_size)) == element_fingerprint) {
             return true;
         }
@@ -163,5 +163,5 @@ unsigned int BloomFilter::get_number_of_elements_in_bucket(const char *element) 
 }
 
 size_t BloomFilter::number_of_lost_bits(unsigned int fingerprint_length, unsigned int number_of_elements) {
-    return (sizeof(size_t)*BITS_IN_BYTE)-(fingerprint_length*number_of_elements)-log_max_elements_in_bucket;
+    return bits_per_bucket-(fingerprint_length*number_of_elements);
 }
