@@ -152,16 +152,6 @@ size_t BloomFilter::get_bucket_index(const char *element) {
     return (hash<string>{}(element))%buckets_per_table;
 }
 
-unsigned int BloomFilter::get_number_of_elements_in_bucket(const char *element) {
-    auto bucket_index = get_bucket_index(element);
-    for (unsigned int table_index=0; table_index<number_of_tables; table_index++) {
-        if (bucket_contains_element(table_index,bucket_index,element)) {
-            return get_number_of_elements_in_bucket(table_index, bucket_index);
-        }
-    }
-    return 0;
-}
-
 size_t BloomFilter::number_of_lost_bits(unsigned int fingerprint_length, unsigned int number_of_elements) {
     return bits_per_bucket-(fingerprint_length*number_of_elements);
 }
