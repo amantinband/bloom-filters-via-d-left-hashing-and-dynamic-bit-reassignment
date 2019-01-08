@@ -1,27 +1,25 @@
 #include <iostream>
 #include "BloomFilter.h"
+#include <cstdlib>
+#include <ctime>
 
 int main() {
-    BloomFilter bloom_filter;
+    srand(time(0));
+    BloomFilter bloom_filter(1000);
     std::ios_base::fmtflags f(cout.flags());
-    int a;
-    int number_of_elements = 300;
+    int number_of_elements = 1000;
+
+    unsigned int random;
     for (int i=1; i<number_of_elements; i++) {
-        bloom_filter.insert(reinterpret_cast<const char *>(&i));
-    }
-    int max = 0;
-    for (int i=1; i<number_of_elements; i++) {
-        if (bloom_filter.query(reinterpret_cast<const char *>(&i)) == 0) {
-            cout.flags(f);
-            cout <<  i << endl;
-        }
+        random = static_cast<unsigned int>(rand() % 1000000);
+        bloom_filter.insert(reinterpret_cast<const char *>(&random));
     }
     int n=0;
     for (int i=500000; i<500000+number_of_elements; i++){
-        if (bloom_filter.query(reinterpret_cast<const char *>(&i)) == 1) {
+        random = static_cast<unsigned int>(rand() % 1000000) + 1000000;
+        if (bloom_filter.query(reinterpret_cast<const char *>(&random)) == 1) {
             n++;
         }
-
     }
     cout.flags(f);
     cout << n << endl;
