@@ -4,6 +4,7 @@
 
 #include <functional>
 #include <iostream>
+#include <cmath>
 #include "BloomFilter.h"
 
 BloomFilter::BloomFilter(unsigned int number_of_tables, unsigned int buckets_per_table, unsigned int bits_per_bucket, unsigned int log_max_elements_in_bucket)
@@ -24,17 +25,41 @@ void BloomFilter::insert(const char *element) {
     if (element_is_in_bloom_filter(element)) {
         return;
     }
-    unsigned int destinationTable = get_table_index_with_emptiest_bucket(element);
-    size_t bucket_index = (hash<string>{}(element))%buckets_per_table;
-    increment_bucket_element_counter(destinationTable, bucket_index);
-    cout << get_number_of_elements_in_bucket(destinationTable, bucket_index) << endl;
-    cout << element << endl;
+    size_t       bucket_index                             = get_bucket_index(element);
+    unsigned int destination_table_index                  = get_table_index_with_emptiest_bucket(element);
+    unsigned int number_of_elements_in_destination_bucket = get_number_of_elements_in_bucket(destination_table_index, bucket_index);
+    unsigned int new_fingerprint_length                   = bits_per_bucket/(number_of_elements_in_destination_bucket+1);
+    unsigned int old_fingerprint_length                   = number_of_elements_in_destination_bucket == 0 ? 0 : bits_per_bucket/number_of_elements_in_destination_bucket;
+    unsigned int table_size_in_bytes                      = get_table_size_in_bytes();
+    size_t       old_bucket                               = get_bucket(destination_table_index, bucket_index);
+    size_t       element_fingerprint                      = get_fingerprint(element, number_of_elements_in_destination_bucket+1);
+    size_t       new_bucket                               = 0;
+
+    if (number_of_elements_in_destination_bucket > (static_cast<size_t>(1)<<log_max_elements_in_bucket)) {
+        throw OverflowException();
+    }
+    /* dynamic bit reassignment */
+    new_bucket |= number_of_elements_in_destination_bucket+1;
+    new_bucket <<= number_of_lost_bits(new_fingerprint_length, number_of_elements_in_destination_bucket + 1);
+    for (int i=0; i<number_of_elements_in_destination_bucket; i++) {
+        new_bucket <<= new_fingerprint_length;
+        new_bucket |= (old_bucket&get_bitmask(old_fingerprint_length))%(static_cast<size_t>(1)<<new_fingerprint_length);
+        old_bucket >>= old_fingerprint_length;
+    }
+    new_bucket <<= new_fingerprint_length;
+    new_bucket |= element_fingerprint;
+
+    /* replace old bucket */
+    for (unsigned int i=0; i<get_bucket_size_in_bytes(); i++) {
+        table[destination_table_index*table_size_in_bytes+bucket_index*get_bucket_size_in_bytes()+i] = static_cast<unsigned char>(0xFF&(new_bucket >> ((sizeof(size_t)-1-i)*BITS_IN_BYTE)));
+    }
+    cout << hex << new_bucket << endl;
 }
 
 unsigned int BloomFilter::get_table_index_with_emptiest_bucket(const string &element) {
     size_t bucket_index = (hash<string>{}(element))%buckets_per_table;
     unsigned int min_bucket_element = INT32_MAX;
-    unsigned int table_index_with_min_bucket;
+    unsigned int table_index_with_min_bucket = 0;
 
     for (unsigned int table_index=0; table_index<number_of_tables; table_index++) {
         unsigned int elements_in_bucket = get_number_of_elements_in_bucket(table_index, bucket_index);
@@ -47,7 +72,7 @@ unsigned int BloomFilter::get_table_index_with_emptiest_bucket(const string &ele
 }
 
 unsigned int BloomFilter::get_number_of_elements_in_bucket(unsigned int table_index, size_t bucket_index) {
-    return (unsigned int)(table[table_index*get_table_size_in_bytes()+bucket_index]>>(BITS_IN_BYTE-log_max_elements_in_bucket));
+    return (unsigned int)(table[table_index*get_table_size_in_bytes()+bucket_index*get_bucket_size_in_bytes()]>>(BITS_IN_BYTE-log_max_elements_in_bucket));
 }
 
 unsigned int BloomFilter::get_table_size_in_bytes() {
@@ -55,7 +80,7 @@ unsigned int BloomFilter::get_table_size_in_bytes() {
 }
 
 bool BloomFilter::element_is_in_bloom_filter(const char *element) {
-    size_t bucket_index = hash<string>{}(element)%buckets_per_table;
+    size_t bucket_index = get_bucket_index(element);
 
     for (unsigned int table_index=0; table_index<number_of_tables; table_index++) {
         if (bucket_contains_element(table_index, bucket_index, element)) {
@@ -73,42 +98,70 @@ bool BloomFilter::bucket_contains_element(unsigned int table_index, size_t bucke
         return false;
     }
 
-    size_t element_fingerprint = get_fingerprint(element, bits_per_bucket/number_of_elements_in_bucket);
+    size_t element_fingerprint = get_fingerprint(element, number_of_elements_in_bucket);
 
-    for (unsigned int i=0; i<number_of_elements_in_bucket; i++) {
-        if (get_element_at_index(table_index, bucket_index, i) == element_fingerprint) {
+    size_t bucket = get_bucket(table_index, bucket_index);
+
+    /* extract fingerprint from bucket */
+    auto element_size = static_cast<unsigned int>(floor(bits_per_bucket / number_of_elements_in_bucket));
+
+    for (int i=0; i<number_of_elements_in_bucket; i++) {
+        if ((bucket&get_bitmask(element_size)) == element_fingerprint) {
             return true;
         }
+        bucket >>= element_size;
     }
     return false;
 }
 
-size_t BloomFilter::get_fingerprint(const char *element, unsigned int length) {
-    return hash<string>{}(element)%length;
+size_t BloomFilter::get_fingerprint(const char *element, unsigned int number_of_elements_in_bucket) {
+    size_t fingerprint_length = static_cast<size_t>(static_cast<size_t>(1) << (bits_per_bucket-1));
+    size_t fingerprint = hash<string>{}(element)%(fingerprint_length);
+    for (unsigned int i=2; i<number_of_elements_in_bucket+1; i++) {
+        fingerprint_length = static_cast<size_t>(static_cast<size_t>(1) << (bits_per_bucket / i));
+        fingerprint = fingerprint%fingerprint_length;
+    }
+    return fingerprint;
 }
 
-size_t BloomFilter::get_element_at_index(unsigned int table_index, size_t bucket_index, unsigned int element_index) {
-    size_t fingerprint = 0;
+size_t BloomFilter::get_bitmask(unsigned int size) {
+    return (((~(static_cast<size_t>(0))) << (sizeof(size_t) * BITS_IN_BYTE - size)) >> (sizeof(size_t) * BITS_IN_BYTE - size));
+}
+
+size_t BloomFilter::get_bucket(unsigned int table_index, size_t bucket_index) {
+    size_t bucket = 0;
 
     /* extract entire bucket from table */
     for (unsigned int i=0; i<sizeof(size_t); i++) {
-        fingerprint <<= BITS_IN_BYTE;
-        fingerprint |= table[table_index*get_table_size_in_bytes() + bucket_index + i];
+        bucket <<= BITS_IN_BYTE;
+        bucket |= table[table_index*get_table_size_in_bytes() + bucket_index*get_bucket_size_in_bytes() + i];
     }
-    unsigned int number_of_elements_in_bucket = get_number_of_elements_in_bucket(table_index, bucket_index);
-    unsigned int element_size = bits_per_bucket/number_of_elements_in_bucket;
-
-    /* extract fingerprint from bucket */
-    fingerprint <<= log_max_elements_in_bucket;
-    fingerprint <<= ((number_of_elements_in_bucket-element_index)*element_size);
-    return fingerprint>>(log_max_elements_in_bucket + ((number_of_elements_in_bucket-1)*element_size));
+    bucket >>= (sizeof(size_t)*BITS_IN_BYTE-log_max_elements_in_bucket-bits_per_bucket);
+    return bucket;
 }
 
-void BloomFilter::increment_bucket_element_counter(unsigned int table_index, size_t bucket_index) {
-    auto bucket_offset_in_table = static_cast<unsigned int>(table_index * get_table_size_in_bytes() + bucket_index);
-    unsigned char first_byte_in_bucket = table[bucket_offset_in_table]>>(BITS_IN_BYTE-log_max_elements_in_bucket);
-    unsigned int current_number_of_elements = get_number_of_elements_in_bucket(table_index, bucket_index);
-    table[bucket_offset_in_table] = static_cast<unsigned char>(
-            ((first_byte_in_bucket << (BITS_IN_BYTE - log_max_elements_in_bucket)) >> (BITS_IN_BYTE - log_max_elements_in_bucket)) | (++current_number_of_elements)<<(BITS_IN_BYTE-log_max_elements_in_bucket));
+bool BloomFilter::query(const char *element) {
+    return element_is_in_bloom_filter(element);
+}
 
+unsigned int BloomFilter::get_bucket_size_in_bytes() {
+    return (bits_per_bucket+log_max_elements_in_bucket)/BITS_IN_BYTE;
+}
+
+size_t BloomFilter::get_bucket_index(const char *element) {
+    return (hash<string>{}(element))%buckets_per_table;
+}
+
+unsigned int BloomFilter::get_number_of_elements_in_bucket(const char *element) {
+    auto bucket_index = get_bucket_index(element);
+    for (unsigned int table_index=0; table_index<number_of_tables; table_index++) {
+        if (bucket_contains_element(table_index,bucket_index,element)) {
+            return get_number_of_elements_in_bucket(table_index, bucket_index);
+        }
+    }
+    return 0;
+}
+
+size_t BloomFilter::number_of_lost_bits(unsigned int fingerprint_length, unsigned int number_of_elements) {
+    return (sizeof(size_t)*BITS_IN_BYTE)-(fingerprint_length*number_of_elements)-log_max_elements_in_bucket;
 }
