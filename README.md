@@ -2,11 +2,14 @@
 ## This code implements the data structure presented in [this article](https://pdfs.semanticscholar.org/c969/d09434e1b3326053e76fc466b62402942d06.pdf)
 
 To use this code first include the file BloomFilter.h  
-`#include "BloomFilter.h"`
+```cpp
+#include "BloomFilter.h"
+```
 
 Create an instance of the class  
-`BloomFilter bloom_filter;`  
-
+```cpp
+BloomFilter bloom_filter;
+```
 By default, these are the values used for the bloom filter:
 * sub-tables = 3
 * buckets in sub-table = 16 
@@ -14,24 +17,31 @@ By default, these are the values used for the bloom filter:
 * log max elements in bucket = 4  
 
 These values can be modified using during initialization of the bloom filter    
+```cpp
+BloomFilter bloom_filter(1000); // create bloom filter with 1000 sub-tables
 
-`BloomFilter bloom_filter(1000); // create bloom filter with 1000 sub-tables`  
+BloomFilter bloom_filter(1000, 50); // create bloom filter with 1000 sub-tables with 50 buckets each
 
-`BloomFilter bloom_filter(1000, 50); // create bloom filter with 1000 sub-tables with 50 buckets each`   
+BloomFilter bloom_filter(1000, 50, 34); // create bloom filter with 1000 sub-tables with 50 buckets each and 34 bits in each bucket  
 
-`BloomFilter bloom_filter(1000, 50, 34); // create bloom filter with 1000 sub-tables with 50 buckets each and 34 bits in each bucket`  
-
-`BloomFilter bloom_filter(1000, 50, 30, 2); // create bloom filter with 1000 sub-tables with 50 buckets each, 30 bits in each bucket and a maximum of 2^2 elements per bucket`  
+BloomFilter bloom_filter(1000, 50, 30, 2); // create bloom filter with 1000 sub-tables with 50 buckets each, 30 bits in each bucket and a maximum of 2^2 elements per bucket
+```
 
 Inserting elements to the bloom filter can be done using the `insert` function  
-`bloom_filter.insert("hey there honey");`  
+```cpp
+bloom_filter.insert("hey there honey");
+```
 
 The bloom filter expects to receive char* but other types can be added with a cast  
-`unsigned int random = rand()%MAX;`  
-`bloom_filter.insert(reinterpret_cast<const char *>(&random));`  
+```cpp
+unsigned int random = rand()%MAX;
+bloom_filter.insert(reinterpret_cast<const char *>(&random));
+```
 
 Queries can be done using the `query` function  
-`bloom_filter.query("hey there honey"); //returns true`  
+```cpp
+bloom_filter.query("hey there honey"); //returns true
+```
 
 
 #### Example
