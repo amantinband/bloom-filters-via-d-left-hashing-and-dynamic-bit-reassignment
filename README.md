@@ -35,7 +35,7 @@ Queries can be done using the `query` function
 
 
 #### Example
-```
+```cpp
 #include <iostream>
 #include <cstdlib>
 #include <ctime>
