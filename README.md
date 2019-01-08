@@ -11,7 +11,7 @@ By default, these are the values used for the bloom filter:
 * sub-tables = 3
 * buckets in sub-table = 16 
 * bits in bucket = 60
-* log max elements in bucket = 4
+* log max elements in bucket = 4  
 
 These values can be modified using during initialization of the bloom filter    
 
@@ -28,9 +28,9 @@ Inserting elements to the bloom filter can be done using the `insert` function
 
 The bloom filter expects to receive char* but other types can be added with a cast  
 `unsigned int random = rand()%MAX;`  
-`bloom_filter.insert(reinterpret_cast<const char *>(&random));`
+`bloom_filter.insert(reinterpret_cast<const char *>(&random));`  
 
-Queries can be done using the `query` function
+Queries can be done using the `query` function  
 `bloom_filter.query("hey there honey"); //returns true`  
 
 
