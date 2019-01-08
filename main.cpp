@@ -1,6 +1,8 @@
 #include <iostream>
 #include "BloomFilter.h"
 
+const char *generate_string(int n);
+
 int main() {
     BloomFilter bloom_filter;
     std::ios_base::fmtflags f(cout.flags());
