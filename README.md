@@ -17,6 +17,10 @@ By default, these are the values used for the bloom filter:
 * bits in bucket = 60
 * log max elements in bucket = 4  
 
+```cpp
+
+    explicit BloomFilter(unsigned int number_of_tables=3, unsigned int buckets_per_table=16, unsigned int bits_per_bucket=60, unsigned int log_max_elements_in_bucket=4);
+```
 These values can be modified during initialization of the bloom filter    
 ```cpp
 BloomFilter bloom_filter(1000); // create bloom filter with 1000 sub-tables
