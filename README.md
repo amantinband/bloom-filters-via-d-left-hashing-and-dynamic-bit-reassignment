@@ -118,5 +118,4 @@ int main() {
 
 False positive percentage:
 0
-0
 ```

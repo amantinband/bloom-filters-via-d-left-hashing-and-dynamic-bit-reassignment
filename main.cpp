@@ -30,7 +30,6 @@ int main() {
     cout.flags(f);
     cout << bloom_filter << endl;
     cout << "False positive percentage:" << endl;
-    cout << n << endl;
     cout << static_cast<double>(n)/NUMBER_OF_ELEMENTS << endl;
     return 0;
 }
