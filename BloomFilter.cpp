@@ -5,6 +5,7 @@
 #include <functional>
 #include <iostream>
 #include <cmath>
+#include <sstream>
 #include "BloomFilter.h"
 
 BloomFilter::BloomFilter(unsigned int number_of_tables, unsigned int buckets_per_table, unsigned int bits_per_bucket, unsigned int log_max_elements_in_bucket)
@@ -53,7 +54,7 @@ void BloomFilter::insert(const char *element) {
     for (unsigned int i=0; i<get_bucket_size_in_bytes(); i++) {
         table[destination_table_index*table_size_in_bytes+bucket_index*get_bucket_size_in_bytes()+i] = static_cast<unsigned char>(0xFF&(new_bucket >> ((get_bucket_size_in_bytes()-1-i)*BITS_IN_BYTE)));
     }
-    //cout << hex << new_bucket << endl;
+//    cout << hex << new_bucket << endl;
 }
 
 unsigned int BloomFilter::get_table_index_with_emptiest_bucket(const char *element) {
@@ -72,7 +73,7 @@ unsigned int BloomFilter::get_table_index_with_emptiest_bucket(const char *eleme
 }
 
 unsigned int BloomFilter::get_number_of_elements_in_bucket(unsigned int table_index, size_t bucket_index) {
-    return (unsigned int)(table[table_index*get_table_size_in_bytes()+bucket_index*get_bucket_size_in_bytes()]>>(BITS_IN_BYTE-log_max_elements_in_bucket));
+    return table[table_index*get_table_size_in_bytes()+bucket_index*get_bucket_size_in_bytes()]>>(BITS_IN_BYTE-log_max_elements_in_bucket);
 }
 
 unsigned int BloomFilter::get_table_size_in_bytes() {
@@ -154,4 +155,47 @@ size_t BloomFilter::get_bucket_index(const char *element) {
 
 size_t BloomFilter::number_of_lost_bits(unsigned int fingerprint_length, unsigned int number_of_elements) {
     return bits_per_bucket-(fingerprint_length*number_of_elements);
+}
+
+string center(const string &s, int n) {
+    stringstream ss;
+    for (unsigned int i=0; i<(n-s.length())/2; i++) {
+        ss << " ";
+    }
+    ss << s;
+    for (unsigned int i=0; i<ceil(n-s.length())/2; i++) {
+        ss << " ";
+    }
+    return ss.str();
+}
+ostream &operator<<(ostream &ostream, BloomFilter bloom_filter) {
+    const unsigned int column_width = bloom_filter.bits_per_bucket/4 + 9;
+
+
+    ostream << "     |";
+    for (unsigned int table_index=0; table_index<bloom_filter.number_of_tables; table_index++) {
+        ostream << center("table " + to_string(table_index), column_width) <<"|";
+    }
+    ostream << endl;
+    ostream << "-----+";
+    for (unsigned int table_index=0; table_index<bloom_filter.number_of_tables; table_index++) {
+        for (unsigned int i=0; i<column_width; i++) {
+            ostream << "-";
+        }
+        ostream << "+";
+    }
+    ostream << endl;
+    for (unsigned int bucket_index=0; bucket_index<bloom_filter.buckets_per_table; bucket_index++) {
+        cout << center(to_string(bucket_index),5) << "|";
+        for (unsigned int table_index=0; table_index<bloom_filter.number_of_tables; table_index++) {
+            size_t bucket = bloom_filter.get_bucket(table_index, bucket_index);
+            auto number_of_elements_in_bucket = static_cast<unsigned int>(bucket >> (sizeof(size_t)*BloomFilter::BITS_IN_BYTE - bloom_filter.log_max_elements_in_bucket));
+            stringstream ss;
+            ss << hex << number_of_elements_in_bucket << " " << hex << bucket;
+            ostream << center(ss.str(), column_width);
+            ostream << "|";
+        }
+        ostream << endl;
+    }
+    return ostream;
 }

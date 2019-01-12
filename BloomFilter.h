@@ -7,12 +7,15 @@
 
 using namespace std;
 #include <cstring>
+#include <exception>
+
 class BloomFilter {
 public:
     explicit BloomFilter(unsigned int number_of_tables=3, unsigned int buckets_per_table=16, unsigned int bits_per_bucket=60, unsigned int log_max_elements_in_bucket=4);
     void insert(const char *element);
     bool query(const char *element);
 
+    friend ostream& operator<<(ostream& ostream, BloomFilter bloom_filter);
     struct InvalidAlignmentException : public exception {
         const char * what() const noexcept {
             return "bits per bucket + log max elements in bucket must be byte aligned";
