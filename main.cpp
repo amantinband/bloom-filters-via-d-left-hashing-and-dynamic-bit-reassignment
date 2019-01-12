@@ -20,7 +20,7 @@ int main() {
 
     /* check number of false positives */
     int n=0;
-    for (int i=1; i<NUMBER_OF_ELEMENTS; i++) {
+    for (int i=0; i<NUMBER_OF_ELEMENTS; i++) {
         random = static_cast<unsigned int>(rand() % MAX_RAND_RANGE) + 2*MAX_RAND_RANGE;
         if (bloom_filter.query(reinterpret_cast<const char *>(&random)) == 1) {
             n++;
