@@ -13,7 +13,7 @@ int main() {
     srand(time(0));
 
     /* add NUMBER_OF_ELEMENTS to the bloom filter */
-    for (int i=1; i<NUMBER_OF_ELEMENTS; i++) {
+    for (int i=0; i<NUMBER_OF_ELEMENTS; i++) {
         random = static_cast<unsigned int>(rand() % MAX_RAND_RANGE);
         bloom_filter.insert(reinterpret_cast<const char *>(&random));
     }
